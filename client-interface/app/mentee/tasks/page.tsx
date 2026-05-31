@@ -5,6 +5,11 @@ import { Clock, CheckCircle2, AlertCircle, FileText, Loader2, Star, Calendar, XC
 import { useMenteeTasks } from '@/lib/hooks/mentee';
 import { StatsCard, SearchAndFilterBar, StatusBadge } from '@/components/admin/ui';
 
+const stripHtml = (html: string) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+};
+
 export default function MenteeTasks() {
   const router = useRouter();
   const {
@@ -180,7 +185,7 @@ export default function MenteeTasks() {
                       )}
                       
                       <p className="text-slate-600 text-sm line-clamp-2 mb-3">
-                        {task.roadmapTask?.description}
+                        {stripHtml(task.roadmapTask?.description || task.description || '')}
                       </p>
                       
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">

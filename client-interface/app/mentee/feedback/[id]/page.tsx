@@ -20,6 +20,7 @@ import {
   User,
 } from 'lucide-react';
 import { useTaskDetail } from '@/lib/hooks/mentee';
+import RichTextEditor from '@/components/shared/RichTextEditor';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -105,7 +106,9 @@ export default function FeedbackView({ params }: PageProps) {
               </span>
             </div>
             {taskDescription && (
-              <p className="text-slate-600 text-sm">{taskDescription}</p>
+              <div className="prose prose-slate max-w-none text-slate-600 text-sm mt-2">
+                <RichTextEditor content={taskDescription} readOnly />
+              </div>
             )}
           </div>
         </div>

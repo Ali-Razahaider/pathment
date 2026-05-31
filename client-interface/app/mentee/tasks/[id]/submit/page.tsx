@@ -193,7 +193,9 @@ export default function TaskSubmission({ params }: PageProps) {
                 {task.difficulty}
               </span>
             </div>
-            <p className="text-slate-600">{taskDescription}</p>
+            <div className="prose prose-slate max-w-none text-slate-600 mt-2">
+              <RichTextEditor content={taskDescription || ''} readOnly />
+            </div>
             {taskDeliverable && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-900"><strong>Deliverable:</strong> {taskDeliverable}</p>
@@ -218,7 +220,7 @@ export default function TaskSubmission({ params }: PageProps) {
           <div className="mt-6">
             <h3 className="text-sm font-medium text-slate-900 mb-3">Acceptance Criteria</h3>
             <ul className="space-y-2">
-              {acceptanceCriteria.map((criterion, index) => (
+              {acceptanceCriteria.map((criterion: string, index: number) => (
                 <li key={index} className="flex items-start gap-2 text-slate-700">
                   <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
                   <span className="text-sm">{criterion}</span>
@@ -232,7 +234,7 @@ export default function TaskSubmission({ params }: PageProps) {
           <div className="mt-6">
             <h3 className="text-sm font-medium text-slate-900 mb-3">Learning Resources</h3>
             <ul className="space-y-2">
-              {resources.map((resource) => (
+              {resources.map((resource: any) => (
                 <li key={resource.id}>
                   <a 
                     href={resource.url}
