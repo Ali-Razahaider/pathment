@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -19,23 +20,26 @@ import {
 
 interface RichTextEditorProps {
   content: string;
-  onChange: (content: string) => void;
+  onChange?: (content: string) => void;
   placeholder?: string;
   minHeight?: string;
+  readOnly?: boolean;
 }
 
 export default function RichTextEditor({
   content,
   onChange,
   placeholder = 'Start typing...',
-  minHeight = '200px'
+  minHeight = '200px',
+  readOnly = false
 }: RichTextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
+    editable: !readOnly,
     extensions: [
       StarterKit,
       Link.configure({
-        openOnClick: false,
+        openOnClick: readOnly,
         HTMLAttributes: {
           class: 'text-blue-600 underline'
         }
@@ -46,7 +50,7 @@ export default function RichTextEditor({
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange?.(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -55,8 +59,24 @@ export default function RichTextEditor({
     }
   });
 
+  useEffect(() => {
+    if (editor && editor.getHTML() !== content) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!readOnly);
+    }
+  }, [readOnly, editor]);
+
   if (!editor) {
     return null;
+  }
+
+  if (readOnly) {
+    return <EditorContent editor={editor} />;
   }
 
   const setLink = () => {

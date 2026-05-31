@@ -9,6 +9,7 @@ import {
 import { useMentorTasks } from '@/lib/hooks/mentor';
 import { StatsCard, TabBar, StatusBadge } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
+import RichTextEditor from '@/components/shared/RichTextEditor';
 
 export default function MentorTasks() {
   const router = useRouter();
@@ -711,13 +712,11 @@ export default function MentorTasks() {
                     <label className="block text-slate-700 text-sm mb-2">
                       Description <span className="text-red-500">*</span>
                     </label>
-                    <textarea
-                      rows={6}
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    <RichTextEditor
+                      content={formData.description}
+                      onChange={(html) => setFormData({ ...formData, description: html })}
                       placeholder="Provide detailed instructions for the task..."
-                      required
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      minHeight="150px"
                     />
                   </div>
 

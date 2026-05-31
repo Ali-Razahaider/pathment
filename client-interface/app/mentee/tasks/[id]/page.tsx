@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useTaskDetail } from '@/lib/hooks/mentee';
 import { PageHeader, StatusBadge } from '@/components/admin/ui';
+import RichTextEditor from '@/components/shared/RichTextEditor';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -79,7 +80,9 @@ export default function TaskDetailsPage({ params }: PageProps) {
                 </span>
               )}
             </div>
-            <p className="text-slate-600">{taskDescription}</p>
+            <div className="prose prose-slate max-w-none text-slate-600">
+              <RichTextEditor content={taskDescription} readOnly />
+            </div>
           </div>
           <StatusBadge status={task.status} />
         </div>
