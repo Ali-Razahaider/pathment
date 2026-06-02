@@ -55,6 +55,18 @@ export const taskApi = {
   cancelTask: (taskId: string, reason?: string) =>
     apiClient.post(`/tasks/${taskId}/cancel`, { reason }),
 
+  updateCustomTask: (taskId: string, data: {
+    title?: string;
+    description?: string;
+    type?: string;
+    difficulty?: string;
+    dueDate?: string;
+    pointsBase?: number;
+    deliverable?: string;
+    acceptanceCriteria?: string[];
+  }) =>
+    apiClient.put(`/tasks/${taskId}`, data),
+
   deleteCustomTask: (taskId: string) =>
     apiClient.delete(`/tasks/${taskId}`),
 

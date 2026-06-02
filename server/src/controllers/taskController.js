@@ -187,6 +187,18 @@ exports.getRoadmapTasks = catchAsync(async (req, res) => {
 });
 
 /**
+ * Update custom task
+ * PUT /api/tasks/:taskId
+ */
+exports.updateCustomTask = catchAsync(async (req, res) => {
+  const { taskId } = req.params;
+  const mentorId = req.user.id;
+  
+  const task = await taskService.updateCustomTask(taskId, mentorId, req.body);
+  res.status(200).json(successResponse('Custom task updated successfully', { task }));
+});
+
+/**
  * Delete custom task
  * DELETE /api/tasks/:taskId
  */

@@ -148,6 +148,18 @@ router.patch(
 );
 
 /**
+ * @route   PUT /api/tasks/:taskId
+ * @desc    Update a custom task within 15-minute editing window
+ * @access  Mentor
+ */
+router.put(
+  '/:taskId',
+  authenticate,
+  authorize(['mentor']),
+  taskController.updateCustomTask
+);
+
+/**
  * @route   DELETE /api/tasks/:taskId
  * @desc    Delete custom task
  * @access  Mentor

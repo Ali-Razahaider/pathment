@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
@@ -20,6 +20,8 @@ import {
   Loader2,
   Send,
   AlertTriangle,
+  Pencil,
+  ArrowLeft,
 } from 'lucide-react';
 import { useMentorTaskDetail } from '@/lib/hooks/mentor';
 import { PageHeader, StatusBadge } from '@/components/admin/ui';
@@ -47,7 +49,90 @@ export default function MentorTaskDetailsPage({ params }: PageProps) {
     setNewDueDate,
     handleExtension,
     handleCancelTask,
+    handleUpdateCustomTask,
+    isUpdating,
   } = useMentorTaskDetail(resolvedParams.id);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    description: '',
+    type: 'custom',
+    difficulty: 'medium',
+    dueDate: '',
+    pointsBase: 10,
+    deliverable: '',
+    acceptanceCriteriaText: '',
+  });
+
+  const startEditing = () => {
+    if (!task) return;
+    const roadmapTask = task.roadmapTask || {};
+    setEditFormData({
+      title: roadmapTask.title || task.title || '',
+      description: roadmapTask.description || task.description || '',
+      type: roadmapTask.type || task.type || 'custom',
+      difficulty: roadmapTask.difficulty || task.difficulty || 'medium',
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      pointsBase: roadmapTask.pointsBase || 10,
+      deliverable: roadmapTask.deliverable || '',
+      acceptanceCriteriaText: (roadmapTask.acceptanceCriteria || []).join('\n'),
+    });
+    setIsEditing(true);
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await handleUpdateCustomTask({
+        title: editFormData.title,
+        description: editFormData.description,
+        type: editFormData.type,
+        difficulty: editFormData.difficulty,
+        dueDate: editFormData.dueDate || undefined,
+        pointsBase: editFormData.pointsBase,
+        deliverable: editFormData.deliverable,
+        acceptanceCriteria: editFormData.acceptanceCriteriaText
+          .split('\n')
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0),
+      });
+      setIsEditing(false);
+    } catch {
+      // toast shown by hook
+    }
+  };
+
+  const [isEditable, setIsEditable] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (task && task.isCustomTask && ['assigned', 'in_progress'].includes(task.status)) {
+      const assignedTime = new Date(task.assignedAt).getTime();
+      const timeRemaining = 15 * 60 * 1000 - (Date.now() - assignedTime);
+
+      Promise.resolve().then(() => {
+        if (active) setIsEditable(timeRemaining > 0);
+      });
+
+      if (timeRemaining > 0) {
+        const timer = setTimeout(() => {
+          if (active) setIsEditable(false);
+        }, timeRemaining);
+        return () => {
+          active = false;
+          clearTimeout(timer);
+        };
+      }
+    } else {
+      Promise.resolve().then(() => {
+        if (active) setIsEditable(false);
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [task]);
 
   if (loading) {
     return (
@@ -62,6 +147,149 @@ export default function MentorTaskDetailsPage({ params }: PageProps) {
       <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
         <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
         <p className="text-red-900">{error || 'Task not found'}</p>
+      </div>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="mb-4">
+          <button
+            onClick={() => setIsEditing(false)}
+            className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 text-sm mb-3 transition-colors font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Cancel Editing
+          </button>
+        </div>
+        
+        <form onSubmit={saveEdit} className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+          <h2 className="text-xl font-semibold text-slate-900">Edit Custom Task</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-slate-700 text-sm font-medium mb-1">
+                Task Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={editFormData.title}
+                onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                required
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-700 text-sm font-medium mb-1">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={5}
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                required
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-1">Task Type</label>
+                <select
+                  value={editFormData.type}
+                  onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                >
+                  <option value="custom">Custom</option>
+                  <option value="exercise">Extra Practice</option>
+                  <option value="project">Project</option>
+                  <option value="practical">Practical</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-1">Difficulty</label>
+                <select
+                  value={editFormData.difficulty}
+                  onChange={(e) => setEditFormData({ ...editFormData, difficulty: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={editFormData.dueDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, dueDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-1">Points</label>
+                <input
+                  type="number"
+                  value={editFormData.pointsBase}
+                  onChange={(e) => setEditFormData({ ...editFormData, pointsBase: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-700 text-sm font-medium mb-1">Deliverable</label>
+              <input
+                type="text"
+                value={editFormData.deliverable}
+                onChange={(e) => setEditFormData({ ...editFormData, deliverable: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-700 text-sm font-medium mb-1">
+                Acceptance Criteria <span className="text-slate-500 text-xs">(one per line)</span>
+              </label>
+              <textarea
+                rows={4}
+                value={editFormData.acceptanceCriteriaText}
+                onChange={(e) => setEditFormData({ ...editFormData, acceptanceCriteriaText: e.target.value })}
+                placeholder="e.g. Code builds without errors&#10;Includes unit tests"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     );
   }
@@ -483,14 +711,26 @@ export default function MentorTaskDetailsPage({ params }: PageProps) {
 
       {/* Actions */}
       <div className="flex items-center justify-between gap-4">
-        {canCancel && !cancellingTask && (
-          <button
-            onClick={() => setCancellingTask(true)}
-            className="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl border border-red-200 font-medium transition-colors text-sm"
-          >
-            Cancel Task
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {canCancel && !cancellingTask && (
+            <button
+              onClick={() => setCancellingTask(true)}
+              className="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl border border-red-200 font-medium transition-colors text-sm"
+            >
+              Cancel Task
+            </button>
+          )}
+
+          {isEditable && !cancellingTask && (
+            <button
+              onClick={startEditing}
+              className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 font-medium transition-colors text-sm flex items-center gap-2"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Task
+            </button>
+          )}
+        </div>
 
         {canReview && !cancellingTask && (
           <button

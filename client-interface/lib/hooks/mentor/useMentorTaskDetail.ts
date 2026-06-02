@@ -23,6 +23,17 @@ export interface UseMentorTaskDetailReturn {
   setNewDueDate: (v: string) => void;
   handleExtension: (approved: boolean, submissionId: string) => Promise<void>;
   handleCancelTask: () => Promise<void>;
+  handleUpdateCustomTask: (data: {
+    title?: string;
+    description?: string;
+    type?: string;
+    difficulty?: string;
+    dueDate?: string;
+    pointsBase?: number;
+    deliverable?: string;
+    acceptanceCriteria?: string[];
+  }) => Promise<void>;
+  isUpdating: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -36,6 +47,7 @@ export function useMentorTaskDetail(taskId: string): UseMentorTaskDetailReturn {
   const [extensionDecision, setExtensionDecision] = useState<'approve' | 'reject' | null>(null);
   const [newDueDate, setNewDueDate] = useState('');
   const [isHandlingExtension, setIsHandlingExtension] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchTask = useCallback(async () => {
     if (!taskId) return;
@@ -96,6 +108,23 @@ export function useMentorTaskDetail(taskId: string): UseMentorTaskDetailReturn {
     }
   }, [taskId, cancelReason, fetchTask]);
 
+  const handleUpdateCustomTask = useCallback(
+    async (data: any) => {
+      setIsUpdating(true);
+      try {
+        await taskApi.updateCustomTask(taskId, data);
+        toast.success('Custom task updated successfully!');
+        await fetchTask();
+      } catch (err: unknown) {
+        toast.error(extractApiErrorMessage(err, 'Failed to update custom task'));
+        throw err;
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [taskId, fetchTask]
+  );
+
   return {
     task,
     loading,
@@ -112,6 +141,8 @@ export function useMentorTaskDetail(taskId: string): UseMentorTaskDetailReturn {
     setNewDueDate,
     handleExtension,
     handleCancelTask,
+    handleUpdateCustomTask,
+    isUpdating,
     refetch: fetchTask,
   };
 }

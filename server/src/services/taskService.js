@@ -851,6 +851,74 @@ class TaskService {
   }
 
   /**
+   * Update custom task (mentor only, within 15 minutes of creation)
+   */
+  async updateCustomTask(taskId, mentorId, data) {
+    const {
+      title,
+      description,
+      type,
+      difficulty,
+      dueDate,
+      pointsBase,
+      deliverable,
+      acceptanceCriteria
+    } = data;
+
+    const task = await models.AssignedTask.findByPk(taskId, {
+      include: [{ model: models.RoadmapTask, as: 'roadmapTask' }]
+    });
+
+    if (!task) {
+      throw new NotFoundError('Task not found');
+    }
+
+    if (!task.isCustomTask) {
+      throw new ValidationError('Only custom tasks can be updated');
+    }
+
+    if (task.mentorId !== mentorId) {
+      throw new ForbiddenError('You can only update your own custom tasks');
+    }
+
+    if (task.status === 'completed' || task.status === 'submitted') {
+      throw new ValidationError('Cannot update submitted or completed tasks');
+    }
+
+    // Calculate 15-minute editing window from assignedAt
+    const assignedTime = new Date(task.assignedAt).getTime();
+    const timeDiffMinutes = (Date.now() - assignedTime) / 60000;
+    if (timeDiffMinutes > 15) {
+      throw new ValidationError('The 15-minute editing window has expired');
+    }
+
+    // Update AssignedTask
+    if (dueDate !== undefined) {
+      task.dueDate = dueDate || null;
+      await task.save();
+    }
+
+    // Update RoadmapTask
+    if (task.roadmapTask) {
+      const roadmapTask = task.roadmapTask;
+      if (title !== undefined) roadmapTask.title = title;
+      if (description !== undefined) roadmapTask.description = description;
+      if (type !== undefined) roadmapTask.type = type || 'custom';
+      if (difficulty !== undefined) roadmapTask.difficulty = difficulty || 'medium';
+      if (pointsBase !== undefined) roadmapTask.pointsBase = pointsBase || 10;
+      if (deliverable !== undefined) roadmapTask.deliverable = deliverable;
+      if (acceptanceCriteria !== undefined) roadmapTask.acceptanceCriteria = acceptanceCriteria || [];
+      await roadmapTask.save();
+    }
+
+    // Update enrollment task stats (in case pointsBase or other fields changed)
+    await this.updateEnrollmentTaskStats(task.enrollmentId);
+
+    // Return the updated task
+    return this.getAssignedTaskById(taskId);
+  }
+
+  /**
    * Delete custom task (mentor only)
    */
   async deleteCustomTask(taskId, mentorId) {
